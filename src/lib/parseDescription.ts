@@ -42,13 +42,12 @@ export function parseConceptDescription(text: string): ParsedDescription {
   }
 
   const parsedDescription = stripHeading(main, "Description");
-  const description = parsedDescription || undefined;
 
   return {
     raw,
-    description,
-    types,
-    misconception,
+    ...(parsedDescription ? { description: parsedDescription } : {}),
+    ...(types ? { types } : {}),
+    ...(misconception ? { misconception } : {}),
   };
 }
 
