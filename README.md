@@ -10,7 +10,9 @@ npm install
 npm run dev
 ```
 
-Open the URL Vite prints (usually `http://localhost:5173`).
+Open the URL Vite prints.
+- Local machine: `http://localhost:5173`
+- Remote/dev-container use: use the forwarded **Network** URL that Vite prints when running with `--host`.
 
 ## Data refresh
 

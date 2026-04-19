@@ -111,7 +111,7 @@ export function HierarchyTree({ tree, expanded, toggle, query, onConceptClick }:
                                   >
                                     <Chevron open={cOpen} />
                                     <span className="min-w-0 flex-1 text-slate-700 dark:text-slate-200">
-                                      <HighlightLine text={ch.chapter} query={query} />
+                                      Chapter: <HighlightLine text={ch.chapter} query={query} />
                                     </span>
                                     <Badge>{ch.topics.length}</Badge>
                                   </button>
