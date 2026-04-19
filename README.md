@@ -26,16 +26,16 @@ npm run build
 npm run preview
 ```
 
-## Netlify deployment
+## Vercel deployment
 
-This repo includes `netlify.toml` so Netlify uses a stable production setup:
+This repo includes `vercel.json` for a stable Vercel setup:
 
-- Node `20`
-- Build command: `npm ci && npm run build`
-- Publish directory: `dist`
-- SPA redirect fallback to `index.html`
+- Install command: `npm ci`
+- Build command: `npm run build`
+- Output directory: `dist`
+- SPA rewrite fallback to `index.html`
 
-If a Netlify build fails, open **Deploy logs** and verify the site is building the latest commit SHA from this branch.
+If a Vercel build fails, open the deployment logs and verify the project is deploying the latest commit SHA from this branch.
 
 ## Project layout
 
