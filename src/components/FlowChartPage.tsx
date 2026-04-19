@@ -30,7 +30,7 @@ function nodeStyle(kind: GraphNode["kind"], active: boolean): string {
     concept: "border-amber-300 bg-amber-50 text-amber-900",
   }[kind];
 
-  return `${tone} ${active ? "ring-2 ring-indigo-300" : ""}`;
+  return `${tone} transition ${active ? "ring-2 ring-indigo-300" : "hover:ring-1 hover:ring-indigo-200"}`;
 }
 
 function bezierPath(x1: number, y1: number, x2: number, y2: number): string {
@@ -42,75 +42,67 @@ export function FlowChartPage({ tree, onBack }: Props) {
   const [selectedParentName, setSelectedParentName] = useState<string | null>(
     tree[0]?.parentConcept ?? null,
   );
-  const [selectedGrade, setSelectedGrade] = useState<string | null>(null);
-  const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
-  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  const [expandedGrade, setExpandedGrade] = useState<string | null>(null);
+  const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
+  const [expandedTopic, setExpandedTopic] = useState<string | null>(null);
 
-  const selectedParent =
-    tree.find((parent) => parent.parentConcept === selectedParentName) ?? null;
+  const selectedParent = tree.find((parent) => parent.parentConcept === selectedParentName) ?? null;
+  const selectedGradeNode =
+    selectedParent?.grades.find((grade) => grade.grade === expandedGrade) ?? null;
+  const selectedChapterNode =
+    selectedGradeNode?.chapters.find((chapter) => chapter.chapter === expandedChapter) ?? null;
+  const selectedTopicNode =
+    selectedChapterNode?.topics.find((topic) => topic.topic === expandedTopic) ?? null;
 
   const layout = useMemo(() => {
-    if (!selectedParent) {
+    if (!tree.length) {
       return { nodes: [] as GraphNode[], edges: [] as GraphEdge[], width: 1200, height: 700 };
     }
 
     const nodes: GraphNode[] = [];
     const edges: GraphEdge[] = [];
 
-    const levelX = [80, 340, 600, 860, 1120] as const;
-    const rowHeight = 86;
+    const levelX = [40, 300, 560, 820, 1080] as const;
+    const rowHeight = 58;
+    const startY = 36;
 
-    const activeGrades = selectedGrade
-      ? selectedParent.grades.filter((g) => g.grade === selectedGrade)
-      : selectedParent.grades;
-
-    const allRows = Math.max(
-      8,
-      activeGrades.reduce((sum, grade) => {
-        const chapterCount = selectedChapter
-          ? grade.chapters.filter((c) => c.chapter === selectedChapter).length
-          : grade.chapters.length;
-        return sum + Math.max(1, chapterCount);
-      }, 0) + 2,
-    );
-
-    const height = allRows * rowHeight;
-
-    const parentId = `parent:${selectedParent.parentConcept}`;
-    nodes.push({
-      id: parentId,
-      label: selectedParent.parentConcept,
-      level: 0,
-      x: levelX[0],
-      y: height / 2,
-      kind: "parent",
+    tree.forEach((parent, index) => {
+      const parentId = `parent:${parent.parentConcept}`;
+      const parentY = startY + index * rowHeight;
+      nodes.push({
+        id: parentId,
+        label: parent.parentConcept,
+        level: 0,
+        x: levelX[0],
+        y: parentY,
+        kind: "parent",
+      });
     });
 
-    let rowCursor = 1;
+    if (selectedParent) {
+      const parentId = `parent:${selectedParent.parentConcept}`;
 
-    for (const grade of activeGrades) {
-      const gradeId = `${parentId}/grade:${grade.grade}`;
-      const gradeY = rowCursor * rowHeight;
-
-      nodes.push({
-        id: gradeId,
-        label: `Grade ${grade.grade}`,
-        level: 1,
-        x: levelX[1],
-        y: gradeY,
-        kind: "grade",
+      selectedParent.grades.forEach((grade, index) => {
+        const gradeId = `${parentId}/grade:${grade.grade}`;
+        const gradeY = startY + index * rowHeight;
+        nodes.push({
+          id: gradeId,
+          label: `Grade ${grade.grade}`,
+          level: 1,
+          x: levelX[1],
+          y: gradeY,
+          kind: "grade",
+        });
+        edges.push({ id: `${parentId}->${gradeId}`, from: parentId, to: gradeId });
       });
+    }
 
-      edges.push({ id: `${parentId}->${gradeId}`, from: parentId, to: gradeId });
-
-      const activeChapters = selectedChapter
-        ? grade.chapters.filter((ch) => ch.chapter === selectedChapter)
-        : grade.chapters;
-
-      for (const chapter of activeChapters) {
+    if (selectedParent && selectedGradeNode) {
+      const parentId = `parent:${selectedParent.parentConcept}`;
+      const gradeId = `${parentId}/grade:${selectedGradeNode.grade}`;
+      selectedGradeNode.chapters.forEach((chapter, index) => {
         const chapterId = `${gradeId}/chapter:${chapter.chapter}`;
-        const chapterY = rowCursor * rowHeight;
-
+        const chapterY = startY + index * rowHeight;
         nodes.push({
           id: chapterId,
           label: `Chapter: ${chapter.chapter}`,
@@ -119,59 +111,68 @@ export function FlowChartPage({ tree, onBack }: Props) {
           y: chapterY,
           kind: "chapter",
         });
-
         edges.push({ id: `${gradeId}->${chapterId}`, from: gradeId, to: chapterId });
+      });
+    }
 
-        const activeTopics = selectedTopic
-          ? chapter.topics.filter((topic) => topic.topic === selectedTopic)
-          : chapter.topics;
+    if (selectedParent && selectedGradeNode && selectedChapterNode) {
+      const parentId = `parent:${selectedParent.parentConcept}`;
+      const gradeId = `${parentId}/grade:${selectedGradeNode.grade}`;
+      const chapterId = `${gradeId}/chapter:${selectedChapterNode.chapter}`;
+      selectedChapterNode.topics.forEach((topic, index) => {
+        const topicId = `${chapterId}/topic:${topic.topic}`;
+        const topicY = startY + index * rowHeight;
+        nodes.push({
+          id: topicId,
+          label: topic.topic,
+          level: 3,
+          x: levelX[3],
+          y: topicY,
+          kind: "topic",
+        });
+        edges.push({ id: `${chapterId}->${topicId}`, from: chapterId, to: topicId });
+      });
+    }
 
-        for (const topic of activeTopics) {
-          const topicId = `${chapterId}/topic:${topic.topic}`;
-          const topicY = rowCursor * rowHeight;
-
-          nodes.push({
-            id: topicId,
-            label: topic.topic,
-            level: 3,
-            x: levelX[3],
-            y: topicY,
-            kind: "topic",
-          });
-
-          edges.push({ id: `${chapterId}->${topicId}`, from: chapterId, to: topicId });
-
-          const maxConcepts = selectedTopic ? topic.concepts.length : Math.min(4, topic.concepts.length);
-          const conceptsToDraw = topic.concepts.slice(0, maxConcepts);
-
-          conceptsToDraw.forEach((concept, idx) => {
-            const conceptId = `${topicId}/concept:${idx}`;
-            const conceptY = topicY + idx * 24;
-
-            nodes.push({
-              id: conceptId,
-              label: concept.name,
-              level: 4,
-              x: levelX[4],
-              y: conceptY,
-              kind: "concept",
-            });
-
-            edges.push({ id: `${topicId}->${conceptId}`, from: topicId, to: conceptId });
-          });
-
-          rowCursor += Math.max(1, maxConcepts > 1 ? maxConcepts : 1);
-        }
-      }
+    if (selectedParent && selectedGradeNode && selectedChapterNode && selectedTopicNode) {
+      const parentId = `parent:${selectedParent.parentConcept}`;
+      const gradeId = `${parentId}/grade:${selectedGradeNode.grade}`;
+      const chapterId = `${gradeId}/chapter:${selectedChapterNode.chapter}`;
+      const topicId = `${chapterId}/topic:${selectedTopicNode.topic}`;
+      selectedTopicNode.concepts.forEach((concept, index) => {
+        const conceptId = `${topicId}/concept:${index}`;
+        const conceptY = startY + index * rowHeight;
+        nodes.push({
+          id: conceptId,
+          label: concept.name,
+          level: 4,
+          x: levelX[4],
+          y: conceptY,
+          kind: "concept",
+        });
+        edges.push({ id: `${topicId}->${conceptId}`, from: topicId, to: conceptId });
+      });
     }
 
     return {
       nodes,
       edges,
-      width: 1360,
-      height: Math.max(700, height),
+      width: 1320,
+      height: Math.max(
+        520,
+        startY +
+          Math.max(
+            tree.length,
+            selectedParent?.grades.length ?? 0,
+            selectedGradeNode?.chapters.length ?? 0,
+            selectedChapterNode?.topics.length ?? 0,
+            selectedTopicNode?.concepts.length ?? 0,
+          ) *
+            rowHeight +
+          48,
+      ),
     };
-  }, [selectedParent, selectedGrade, selectedChapter, selectedTopic]);
+  }, [tree, selectedParent, selectedGradeNode, selectedChapterNode, selectedTopicNode]);
 
   const nodeById = useMemo(
     () => Object.fromEntries(layout.nodes.map((node) => [node.id, node])),
@@ -186,7 +187,8 @@ export function FlowChartPage({ tree, onBack }: Props) {
             Curriculum Relationship Map
           </h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Kumu-style network view: zoom through connected grades, chapters, topics, and concepts.
+            Compact, collapsed map: open one branch at a time to explore connected grades, chapters,
+            topics, and concepts.
           </p>
         </div>
         <button
@@ -198,68 +200,9 @@ export function FlowChartPage({ tree, onBack }: Props) {
         </button>
       </div>
 
-      <div className="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900 lg:grid-cols-4">
-        <label className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Parent Concept
-          <select
-            value={selectedParentName ?? ""}
-            onChange={(e) => {
-              setSelectedParentName(e.target.value || null);
-              setSelectedGrade(null);
-              setSelectedChapter(null);
-              setSelectedTopic(null);
-            }}
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-          >
-            {tree.map((parent) => (
-              <option key={parent.parentConcept} value={parent.parentConcept}>
-                {parent.parentConcept}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Grade Filter
-          <input
-            value={selectedGrade ?? ""}
-            onChange={(e) => {
-              const next = e.target.value.trim();
-              setSelectedGrade(next.length > 0 ? next : null);
-              setSelectedChapter(null);
-              setSelectedTopic(null);
-            }}
-            placeholder="e.g. 07"
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-          />
-        </label>
-
-        <label className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Chapter Filter
-          <input
-            value={selectedChapter ?? ""}
-            onChange={(e) => {
-              const next = e.target.value.trim();
-              setSelectedChapter(next.length > 0 ? next : null);
-              setSelectedTopic(null);
-            }}
-            placeholder="Exact chapter name"
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-          />
-        </label>
-
-        <label className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Topic Filter
-          <input
-            value={selectedTopic ?? ""}
-            onChange={(e) => {
-              const next = e.target.value.trim();
-              setSelectedTopic(next.length > 0 ? next : null);
-            }}
-            placeholder="Exact topic name"
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-          />
-        </label>
+      <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+        Click a node to expand that line. Only one line stays open at each level to keep the chart
+        compact and readable.
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-soft dark:border-slate-700 dark:bg-slate-900">
@@ -288,16 +231,55 @@ export function FlowChartPage({ tree, onBack }: Props) {
               })}
             </svg>
 
-            {layout.nodes.map((node) => (
-              <div
-                key={node.id}
-                className={`absolute w-44 rounded-xl border px-3 py-2 text-xs shadow-sm ${nodeStyle(node.kind, false)}`}
-                style={{ left: node.x, top: node.y }}
-              >
-                <p className="truncate font-semibold">{node.label}</p>
-                <p className="mt-1 text-[10px] uppercase tracking-wide opacity-70">{node.kind}</p>
-              </div>
-            ))}
+            {layout.nodes.map((node) => {
+              const isActive =
+                (node.kind === "parent" && selectedParentName === node.label) ||
+                (node.kind === "grade" && node.label === `Grade ${expandedGrade}`) ||
+                (node.kind === "chapter" && node.label === `Chapter: ${expandedChapter}`) ||
+                (node.kind === "topic" && node.label === expandedTopic);
+
+              return (
+                <button
+                  key={node.id}
+                  type="button"
+                  onClick={() => {
+                    if (node.kind === "parent") {
+                      const parentLabel = node.label;
+                      setSelectedParentName((current) =>
+                        current === parentLabel ? null : parentLabel,
+                      );
+                      setExpandedGrade(null);
+                      setExpandedChapter(null);
+                      setExpandedTopic(null);
+                      return;
+                    }
+                    if (node.kind === "grade") {
+                      const gradeValue = node.label.replace("Grade ", "");
+                      setExpandedGrade((current) => (current === gradeValue ? null : gradeValue));
+                      setExpandedChapter(null);
+                      setExpandedTopic(null);
+                      return;
+                    }
+                    if (node.kind === "chapter") {
+                      const chapterValue = node.label.replace("Chapter: ", "");
+                      setExpandedChapter((current) =>
+                        current === chapterValue ? null : chapterValue,
+                      );
+                      setExpandedTopic(null);
+                      return;
+                    }
+                    if (node.kind === "topic") {
+                      setExpandedTopic((current) => (current === node.label ? null : node.label));
+                    }
+                  }}
+                  className={`absolute w-52 rounded-xl border px-3 py-2 text-left text-xs shadow-sm ${nodeStyle(node.kind, isActive)}`}
+                  style={{ left: node.x, top: node.y }}
+                >
+                  <p className="truncate font-semibold">{node.label}</p>
+                  <p className="mt-1 text-[10px] uppercase tracking-wide opacity-70">{node.kind}</p>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
