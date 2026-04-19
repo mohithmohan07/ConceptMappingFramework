@@ -21,6 +21,14 @@ type GraphEdge = {
   to: string;
 };
 
+const EXPORT_COLORS: Record<GraphNode["kind"], { fill: string; stroke: string; text: string }> = {
+  parent: { fill: "#eef2ff", stroke: "#a5b4fc", text: "#312e81" },
+  grade: { fill: "#f0f9ff", stroke: "#7dd3fc", text: "#0c4a6e" },
+  chapter: { fill: "#ecfdf5", stroke: "#86efac", text: "#14532d" },
+  topic: { fill: "#f5f3ff", stroke: "#c4b5fd", text: "#4c1d95" },
+  concept: { fill: "#fffbeb", stroke: "#fcd34d", text: "#78350f" },
+};
+
 function nodeStyle(kind: GraphNode["kind"], active: boolean): string {
   const tone = {
     parent: "border-indigo-300 bg-indigo-50 text-indigo-900",
@@ -36,6 +44,15 @@ function nodeStyle(kind: GraphNode["kind"], active: boolean): string {
 function bezierPath(x1: number, y1: number, x2: number, y2: number): string {
   const curveOffset = Math.max(40, (x2 - x1) * 0.5);
   return `M ${x1} ${y1} C ${x1 + curveOffset} ${y1}, ${x2 - curveOffset} ${y2}, ${x2} ${y2}`;
+}
+
+function escapeXml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
 }
 
 export function FlowChartPage({ tree, onBack }: Props) {
@@ -179,6 +196,46 @@ export function FlowChartPage({ tree, onBack }: Props) {
     [layout.nodes],
   );
 
+  const downloadSnapshot = () => {
+    const svgEdges = layout.edges
+      .map((edge) => {
+        const from = nodeById[edge.from];
+        const to = nodeById[edge.to];
+        if (!from || !to) return "";
+        const x1 = from.x + 180;
+        const y1 = from.y + 20;
+        const x2 = to.x;
+        const y2 = to.y + 20;
+        return `<path d="${bezierPath(x1, y1, x2, y2)}" fill="none" stroke="rgba(99,102,241,0.35)" stroke-width="1.7" />`;
+      })
+      .join("");
+
+    const svgNodes = layout.nodes
+      .map((node) => {
+        const color = EXPORT_COLORS[node.kind];
+        return `<g>
+  <rect x="${node.x}" y="${node.y}" width="208" height="42" rx="12" ry="12" fill="${color.fill}" stroke="${color.stroke}" />
+  <text x="${node.x + 12}" y="${node.y + 18}" fill="${color.text}" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="600">${escapeXml(node.label)}</text>
+  <text x="${node.x + 12}" y="${node.y + 34}" fill="${color.text}" font-family="Inter, Arial, sans-serif" font-size="10" opacity="0.7">${node.kind.toUpperCase()}</text>
+</g>`;
+      })
+      .join("");
+
+    const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${layout.width}" height="${layout.height}" viewBox="0 0 ${layout.width} ${layout.height}">
+<rect width="100%" height="100%" fill="#f8fafc" />
+${svgEdges}
+${svgNodes}
+</svg>`;
+
+    const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "curriculum-flow-map.svg";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 px-4 py-6 dark:bg-slate-950 sm:px-6 lg:px-8">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
@@ -191,13 +248,22 @@ export function FlowChartPage({ tree, onBack }: Props) {
             topics, and concepts.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onBack}
-          className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
-        >
-          Back to hierarchy
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={downloadSnapshot}
+            className="rounded-full border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-800 hover:bg-indigo-100 dark:border-indigo-500/60 dark:bg-indigo-950/50 dark:text-indigo-200"
+          >
+            Download screenshot (SVG)
+          </button>
+          <button
+            type="button"
+            onClick={onBack}
+            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+          >
+            Back to hierarchy
+          </button>
+        </div>
       </div>
 
       <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
