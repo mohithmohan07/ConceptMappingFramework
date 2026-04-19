@@ -41,7 +41,7 @@ export function parseConceptDescription(text: string): ParsedDescription {
     misconception = stripHeading(raw.slice(miscIdx).trim(), "Misconception");
   }
 
-  let description = stripHeading(main, "Description");
+  let description: string | undefined = stripHeading(main, "Description");
   if (!description && !types && !misconception) {
     description = undefined;
   }
