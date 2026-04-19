@@ -43,12 +43,21 @@ export function parseConceptDescription(text: string): ParsedDescription {
 
   const parsedDescription = stripHeading(main, "Description");
 
-  return {
-    raw,
-    ...(parsedDescription ? { description: parsedDescription } : {}),
-    ...(types ? { types } : {}),
-    ...(misconception ? { misconception } : {}),
-  };
+  const parsed: ParsedDescription = { raw };
+
+  if (parsedDescription) {
+    parsed.description = parsedDescription;
+  }
+
+  if (types) {
+    parsed.types = types;
+  }
+
+  if (misconception) {
+    parsed.misconception = misconception;
+  }
+
+  return parsed;
 }
 
 function stripHeading(block: string, label: string): string {
