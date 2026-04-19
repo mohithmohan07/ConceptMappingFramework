@@ -26,6 +26,17 @@ npm run build
 npm run preview
 ```
 
+## Netlify deployment
+
+This repo includes `netlify.toml` so Netlify uses a stable production setup:
+
+- Node `20`
+- Build command: `npm ci && npm run build`
+- Publish directory: `dist`
+- SPA redirect fallback to `index.html`
+
+If a Netlify build fails, open **Deploy logs** and verify the site is building the latest commit SHA from this branch.
+
 ## Project layout
 
 - `src/data/transformToHierarchy.ts` — flat rows → nested hierarchy (source of truth for structure).
