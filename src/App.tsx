@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ConceptModal } from "./components/ConceptModal";
 import { HierarchyTree } from "./components/HierarchyTree";
 import { SummaryCards } from "./components/SummaryCards";
+import { FlowChartPage } from "./components/FlowChartPage";
 import {
   collectAllExpandKeys,
   defaultExpandedKeys,
@@ -31,6 +32,9 @@ export default function App() {
   );
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<ConceptNode | null>(null);
+  const [showFlowChart, setShowFlowChart] = useState(() =>
+    typeof window !== "undefined" ? window.location.search.includes("view=flow") : false,
+  );
 
   useEffect(() => {
     loadRows()
@@ -74,10 +78,32 @@ export default function App() {
     setExpanded(new Set());
   }, []);
 
+  const openFlowChart = useCallback(() => {
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("view", "flow");
+      window.history.replaceState({}, "", url.toString());
+    }
+    setShowFlowChart(true);
+  }, []);
+
+  const backToHierarchy = useCallback(() => {
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("view");
+      window.history.replaceState({}, "", url.toString());
+    }
+    setShowFlowChart(false);
+  }, []);
+
   const exportCsv = useCallback(() => {
     const flat = flattenHierarchy(filtered);
     downloadCsv(flat, "concept-map-export.csv");
   }, [filtered]);
+
+  if (showFlowChart) {
+    return <FlowChartPage tree={filtered} onBack={backToHierarchy} />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
@@ -92,12 +118,19 @@ export default function App() {
                 Grade-wise concept mapping architecture
               </h1>
               <p className="mt-3 text-lg leading-relaxed text-slate-600 dark:text-slate-300">
-                An interactive view of how chapter-level content is structured into parent concepts,
-                topics, and granular concepts across grades — the backbone of deep curriculum
-                intelligence, not simple chapter tagging.
+                This page maps how curriculum knowledge is connected across grades—from parent concepts to
+                chapters, topics, and final learning concepts—so educators can quickly see progression,
+                gaps, and dependencies instead of browsing isolated chapter lists.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={openFlowChart}
+                className="rounded-full border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 shadow-sm transition hover:border-indigo-300 dark:border-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-200 dark:hover:border-indigo-500"
+              >
+                Open flow chart page
+              </button>
               <button
                 type="button"
                 onClick={() => setDark((d) => !d)}
