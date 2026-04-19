@@ -1,0 +1,87 @@
+[
+  {
+    "parentConcept": "Animal Physiology",
+    "grades": [
+      {
+        "grade": "7",
+        "chapters": [
+          {
+            "chapter": "Life Processes in Animals",
+            "topics": [
+              {
+                "topic": "Topic 01: Overview of Life Processes in Animals",
+                "concepts": [
+                  {
+                    "name": "Importance and Significance of Life Processes",
+                    "description": "Description: Life processes are the basic biological activities that sustain living organisms; they include nutrition, respiration, circulation, excretion and reproduction. These processes enable growth, energy production, repair, waste removal and continuity of species; for example, nutrition provides raw materials and energy, respiration converts food to ATP, and excretion removes metabolic wastes. Homeostasis (maintenance of stable internal conditions) depends on coordination among these processes, e.g., body temperature and blood glucose are regulated by interacting systems.\nTypes: Type 01: Conceptual explanation Case 01: Define life processes and list examples Case 02: Explain role of a specific process (e.g., nutrition) in survival Type 02: Application and significance Case 01: Relate life processes to daily activities (eating, breathing) Case 02: Explain how imbalance (disease) affects life processes\nMisconception: Students often think life processes are independent; they are interconnected and work together for homeostasis.",
+                    "meta": {
+                      "grade": "7",
+                      "chapter": "Life Processes in Animals",
+                      "topic": "Topic 01: Overview of Life Processes in Animals",
+                      "parentConcept": "Animal Physiology"
+                    }
+                  },
+                  {
+                    "name": "Process of Nutrition in Animals",
+                    "description": "Description: Nutrition is the process by which organisms obtain food, digest it, absorb nutrients and use them for energy, growth and repair. In animals, nutrition involves ingestion (taking in food), digestion (mechanical and chemical breakdown), absorption (movement of digested molecules into blood or body fluids), transport and assimilation (use in cells), and egestion (removal of undigested matter). Example: Humans ingest food, chew (mechanical), enzymes in saliva and gut break macromolecules into monomers, villi absorb sugars and amino acids into blood.\nTypes: Type 01: Process description Case 01: Sequence the stages of nutrition Case 02: Explain ingestion vs egestion Type 02: Experimental/observational Case 01: Predict results of swallowing non-digestible material Case 02: Interpret Activity 9.1 (chewed vs unchewed starch)\nMisconception: 'Digestion equals nutrition'—digestion is only one stage; nutrition includes uptake, transport and use of nutrients.",
+                    "meta": {
+                      "grade": "7",
+                      "chapter": "Life Processes in Animals",
+                      "topic": "Topic 01: Overview of Life Processes in Animals",
+                      "parentConcept": "Animal Physiology"
+                    }
+                  },
+                  {
+                    "name": "Types and Classification of Nutrients in Food",
+                    "description": "Description: Food contains carbohydrates, proteins, fats, vitamins, minerals, water and fibre; each has specific roles: carbohydrates provide quick energy (starch → glucose), proteins supply amino acids for growth and repair, fats supply concentrated energy and insulation, vitamins and minerals regulate metabolic reactions, fibre aids bowel movement and gut health, water is solvent and medium. Examples: Chapati (starch), milk (protein and fat), leafy vegetables (vitamins and fibre). Balanced diets include all types in proper proportions.\nTypes: Type 01: Identification Case 01: Classify foods as carbohydrate‑rich/protein‑rich/fat‑rich Case 02: Identify sources of vitamins and minerals Type 02: Functional questions Case 01: Explain role of fibre in large intestine Case 02: Consequences of deficiency (e.g., vitamin C → scurvy)\nMisconception: Students may equate 'fat' as always harmful; fats are essential in moderation and for fat‑soluble vitamins.",
+                    "meta": {
+                      "grade": "7",
+                      "chapter": "Life Processes in Animals",
+                      "topic": "Topic 01: Overview of Life Processes in Animals",
+                      "parentConcept": "Animal Physiology"
+                    }
+                  }
+                ]
+              },
+              {
+                "topic": "Topic 02: Structure and Function of the Human Alimentary Canal",
+                "concepts": [
+                  {
+                    "name": "Structure and Function of the Mouth and Oral Cavity",
+                    "description": "Description: The mouth is the entry point of alimentary canal where teeth perform mechanical digestion (crushing, chewing), tongue mixes food with saliva and forms bolus, and salivary glands secrete saliva containing the enzyme salivary amylase that starts starch digestion. Taste and swallowing are coordinated here. Example: Chewing chapati releases starch which saliva converts gradually to sugar, shown by sweetness after prolonged chewing.\nTypes: Type 01: Structural description Case 01: Label parts of the mouth (teeth, tongue, salivary glands) Case 02: Explain roles of each structure Type 02: Activity/experiment Case 01: Activity 9.1 – iodine test on chewed vs unchewed rice Case 02: Predict changes in taste on prolonged chewing\nMisconception: Thinking saliva only moistens food; it also contains amylase that chemically digests starch.",
+                    "meta": {
+                      "grade": "7",
+                      "chapter": "Life Processes in Animals",
+                      "topic": "Topic 02: Structure and Function of the Human Alimentary Canal",
+                      "parentConcept": "Animal Physiology"
+                    }
+                  },
+                  {
+                    "name": "Process of Swallowing and Peristalsis in Oesophagus",
+                    "description": "Description: Swallowing (deglutition) pushes the bolus from mouth into the oesophagus; peristalsis—coordinated waves of muscular contraction and relaxation in the oesophagus and along the alimentary canal—propels food forward even against gravity into the stomach. This involuntary movement continues throughout the tract. Example: Food moves from mouth to stomach via peristaltic waves illustrated in Fig. 9.2.\nTypes: Type 01: Mechanism explanation Case 01: Describe peristalsis steps in oesophagus Case 02: Explain swallowing reflex and epiglottis role Type 02: Applied questions Case 01: Predict swallowing difficulty if oesophageal muscles are weak Case 02: Compare peristalsis in humans with other animals (ruminants)\nMisconception: Belief that gravity alone moves food down; peristalsis actively pushes food regardless of body position.",
+                    "meta": {
+                      "grade": "7",
+                      "chapter": "Life Processes in Animals",
+                      "topic": "Topic 02: Structure and Function of the Human Alimentary Canal",
+                      "parentConcept": "Animal Physiology"
+                    }
+                  },
+                  {
+                    "name": "Structure and Function of the Stomach",
+                    "description": "Description: The stomach is a muscular, J‑shaped organ that stores and churns food; gastric glands in its lining secrete gastric juice containing pepsin (a protease), hydrochloric acid (denatures proteins, provides acidic pH and kills microbes) and mucus (protects stomach lining). Food is partially digested into a semi‑liquid chyme before entering the small intestine. Example: Protein digestion begins in stomach; mucus prevents ulceration by acid.\nTypes: Type 01: Functional analysis Case 01: Explain roles of acid, enzyme and mucus Case 02: Describe churning and formation of chyme Type 02: Experimental/clinical Case 01: Explain effects of excess acid (gastritis/ulcers) Case 02: Role of antacids (neutralisation)\nMisconception: That stomach acid digests all food types fully; digestion of carbohydrates and fats continues largely in intestine.",
+                    "meta": {
+                      "grade": "7",
+                      "chapter": "Life Processes in Animals",
+                      "topic": "Topic 02: Structure and Function of the Human Alimentary Canal",
+                      "parentConcept": "Animal Physiology"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]
