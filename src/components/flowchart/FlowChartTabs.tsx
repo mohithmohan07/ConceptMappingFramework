@@ -17,8 +17,8 @@ export function FlowChartTabs({ activeTab, onTabChange }: { activeTab: FlowTab; 
           onClick={() => onTabChange(tab.id)}
           className={`rounded-xl border p-3 text-left transition ${
             activeTab === tab.id
-              ? "border-indigo-300 bg-indigo-50 text-indigo-900"
-              : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+              ? "border-indigo-300 bg-gradient-to-br from-indigo-50 to-violet-50 text-indigo-900 shadow-sm"
+              : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
           }`}
         >
           <p className="text-sm font-semibold">{tab.label}</p>

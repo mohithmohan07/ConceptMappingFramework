@@ -18,7 +18,7 @@ type Props = {
   onBack: () => void;
 };
 
-const DEFAULT_VIEWPORT: Viewport = { x: 60, y: 30, zoom: 0.9 };
+const DEFAULT_VIEWPORT: Viewport = { x: 80, y: 45, zoom: 0.85 };
 
 function gatherConnectedNodeIds(graph: GraphModel, selectedNodeId: string | null) {
   if (!selectedNodeId) return new Set(graph.nodes.map((node) => node.id));
@@ -78,14 +78,14 @@ export function FlowChartPage({ tree, onBack }: Props) {
   );
 
   return (
-    <div className="min-h-screen bg-slate-100 px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-[1800px] space-y-4">
+    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-white to-slate-100 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1860px] space-y-4">
         <header className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <div>
               <h1 className="text-2xl font-semibold text-slate-900">Flow Chart Workspace</h1>
               <p className="text-sm text-slate-500">
-                Premium multi-view graph exploration for chapters, topics, parent concepts, and concepts.
+                High-clarity graph views for academic structure navigation.
               </p>
             </div>
             <div className="flex gap-2">
@@ -126,6 +126,12 @@ export function FlowChartPage({ tree, onBack }: Props) {
           onFiltersChange={setFilters}
           options={options}
         />
+
+        <section className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 shadow-sm">
+          Nodes: <span className="font-semibold text-slate-800">{graph.nodes.length}</span> · Edges:{" "}
+          <span className="font-semibold text-slate-800">{graph.edges.length}</span> · Selected:{" "}
+          <span className="font-semibold text-slate-800">{selectedNode ? selectedNode.label : "None"}</span>
+        </section>
 
         {graph.nodes.length === 0 ? (
           <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">

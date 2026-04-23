@@ -19,6 +19,12 @@ const KIND_STYLES: Record<GraphNode["kind"], string> = {
   concept: "border-slate-300 bg-white text-slate-800",
 };
 
+function edgePath(sx: number, sy: number, tx: number, ty: number) {
+  const c1x = sx + (tx - sx) * 0.45;
+  const c2x = sx + (tx - sx) * 0.7;
+  return `M ${sx} ${sy} C ${c1x} ${sy}, ${c2x} ${ty}, ${tx} ${ty}`;
+}
+
 export function GraphCanvas({
   nodes,
   edges,
@@ -34,20 +40,22 @@ export function GraphCanvas({
     null,
   );
 
+  const nodeById = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
+
   const bounds = useMemo(() => {
-    if (nodes.length === 0) return { minX: 0, minY: 0, maxX: 1000, maxY: 800 };
+    if (nodes.length === 0) return { minX: 0, minY: 0, maxX: 1200, maxY: 900 };
     return {
-      minX: Math.min(...nodes.map((n) => n.x)) - 140,
-      minY: Math.min(...nodes.map((n) => n.y)) - 100,
-      maxX: Math.max(...nodes.map((n) => n.x)) + 250,
-      maxY: Math.max(...nodes.map((n) => n.y)) + 120,
+      minX: Math.min(...nodes.map((n) => n.x)) - 180,
+      minY: Math.min(...nodes.map((n) => n.y)) - 140,
+      maxX: Math.max(...nodes.map((n) => n.x)) + 320,
+      maxY: Math.max(...nodes.map((n) => n.y)) + 160,
     };
   }, [nodes]);
 
   const onWheel: React.WheelEventHandler<HTMLDivElement> = (event) => {
     event.preventDefault();
     const direction = event.deltaY > 0 ? -1 : 1;
-    const nextZoom = Math.min(1.8, Math.max(0.4, viewport.zoom + direction * 0.08));
+    const nextZoom = Math.min(2, Math.max(0.35, viewport.zoom + direction * 0.09));
     onViewportChange({ ...viewport, zoom: nextZoom });
   };
 
@@ -58,32 +66,32 @@ export function GraphCanvas({
     const height = el.clientHeight;
     const graphWidth = bounds.maxX - bounds.minX;
     const graphHeight = bounds.maxY - bounds.minY;
-    const zoom = Math.max(0.45, Math.min(1.6, Math.min(width / graphWidth, height / graphHeight) * 0.9));
+    const zoom = Math.max(0.45, Math.min(1.7, Math.min(width / graphWidth, height / graphHeight) * 0.92));
     const x = width / 2 - (bounds.minX + graphWidth / 2) * zoom;
     const y = height / 2 - (bounds.minY + graphHeight / 2) * zoom;
     onViewportChange({ x, y, zoom });
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-900/60">
-      <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-300">
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2 text-xs text-slate-600">
         <div className="flex items-center gap-2">
-          <span>Pan: drag canvas</span>
-          <span>·</span>
-          <span>Zoom: mouse wheel</span>
+          <span className="rounded-md bg-slate-100 px-2 py-1">Pan</span>
+          <span className="rounded-md bg-slate-100 px-2 py-1">Zoom</span>
+          <span className="rounded-md bg-slate-100 px-2 py-1">Select</span>
         </div>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={fitToView}
-            className="rounded-md border border-slate-300 bg-white px-2.5 py-1 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-900"
+            className="rounded-md border border-slate-300 bg-white px-2.5 py-1 hover:bg-slate-50"
           >
             Fit to view
           </button>
           <button
             type="button"
             onClick={onResetLayout}
-            className="rounded-md border border-slate-300 bg-white px-2.5 py-1 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-900"
+            className="rounded-md border border-slate-300 bg-white px-2.5 py-1 hover:bg-slate-50"
           >
             Reset layout
           </button>
@@ -104,7 +112,7 @@ export function GraphCanvas({
         }}
         onMouseUp={() => setDragStart(null)}
         onMouseLeave={() => setDragStart(null)}
-        className="relative h-[68vh] min-h-[520px] overflow-hidden"
+        className="relative h-[70vh] min-h-[540px] overflow-hidden bg-[linear-gradient(#f8fafc_1px,transparent_1px),linear-gradient(90deg,#f8fafc_1px,transparent_1px)] [background-size:28px_28px]"
       >
         <div
           className="absolute inset-0"
@@ -113,22 +121,20 @@ export function GraphCanvas({
             transformOrigin: "0 0",
           }}
         >
-          <svg className="pointer-events-none absolute left-0 top-0 h-[2200px] w-[2600px]">
+          <svg className="pointer-events-none absolute left-0 top-0 h-[3200px] w-[4200px]">
             {edges.map((edge) => {
-              const source = nodes.find((n) => n.id === edge.source);
-              const target = nodes.find((n) => n.id === edge.target);
+              const source = nodeById.get(edge.source);
+              const target = nodeById.get(edge.target);
               if (!source || !target) return null;
               const emphasized = emphasizedNodeIds.has(source.id) && emphasizedNodeIds.has(target.id);
               return (
-                <line
+                <path
                   key={edge.id}
-                  x1={source.x + 90}
-                  y1={source.y + 20}
-                  x2={target.x + 10}
-                  y2={target.y + 20}
+                  d={edgePath(source.x + 120, source.y + 20, target.x + 8, target.y + 20)}
+                  fill="none"
                   stroke={emphasized ? "#4f46e5" : "#cbd5e1"}
-                  strokeWidth={emphasized ? 2.5 : 1.4}
-                  strokeOpacity={emphasized ? 0.95 : 0.7}
+                  strokeWidth={emphasized ? 2.2 : 1.3}
+                  strokeOpacity={emphasized ? 0.95 : 0.65}
                 />
               );
             })}
@@ -146,14 +152,14 @@ export function GraphCanvas({
                   event.stopPropagation();
                   onSelectNode(node.id);
                 }}
-                className={`absolute max-w-[220px] rounded-xl border px-3 py-2 text-left text-xs shadow-sm transition ${KIND_STYLES[node.kind]} ${
-                  selected ? "ring-2 ring-indigo-400" : ""
-                } ${dimmed ? "opacity-30" : "opacity-100"}`}
+                className={`absolute max-w-[220px] rounded-xl border px-3 py-2 text-left text-xs shadow transition duration-150 ${KIND_STYLES[node.kind]} ${
+                  selected ? "ring-2 ring-indigo-400 shadow-lg" : ""
+                } ${dimmed ? "opacity-25" : "opacity-100"}`}
                 style={{ left: node.x, top: node.y }}
               >
                 <p className="truncate font-semibold">{node.label}</p>
                 {node.meta?.gapScore !== undefined && (
-                  <p className="mt-0.5 text-[10px] opacity-80">Gap: {String(node.meta.gapScore)}</p>
+                  <p className="mt-1 text-[10px] opacity-80">Gap score: {String(node.meta.gapScore)}</p>
                 )}
                 {node.meta?.coverage !== undefined && (
                   <p className="text-[10px] opacity-80">Coverage: {String(node.meta.coverage)}</p>
