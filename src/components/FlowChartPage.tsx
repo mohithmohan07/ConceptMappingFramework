@@ -1,174 +1,168 @@
 import { useMemo, useState } from "react";
-import type { ConceptNode, ParentConceptNode } from "../data/types";
+import type { ParentConceptNode } from "../data/types";
+import { normalizeConcepts, getFilterOptions } from "./flowchart/adapters";
+import { DetailsPanel } from "./flowchart/DetailsPanel";
+import { FlowChartTabs } from "./flowchart/FlowChartTabs";
+import { FlowChartToolbar } from "./flowchart/FlowChartToolbar";
+import { GraphCanvas } from "./flowchart/GraphCanvas";
+import {
+  buildConceptOverviewGraph,
+  buildCurriculumGraph,
+  buildFocusGapsGraph,
+  buildLibraryGraph,
+} from "./flowchart/graphBuilders";
+import type { FlowFilters, FlowTab, GraphModel, Viewport } from "./flowchart/types";
 
 type Props = {
   tree: ParentConceptNode[];
   onBack: () => void;
 };
 
-function ColumnCard({
-  title,
-  selected,
-  onClick,
-}: {
-  title: string;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`w-full rounded-xl border px-3 py-2 text-left text-sm transition ${
-        selected
-          ? "border-indigo-300 bg-indigo-50 text-indigo-900 dark:border-indigo-500 dark:bg-indigo-950/50 dark:text-indigo-200"
-          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
-      }`}
-    >
-      {title}
-    </button>
-  );
-}
+const DEFAULT_VIEWPORT: Viewport = { x: 60, y: 30, zoom: 0.9 };
 
-function Column({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="min-w-64 flex-1 rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-700 dark:bg-slate-900">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-        {title}
-      </h2>
-      <div className="space-y-2">{children}</div>
-    </section>
-  );
+function gatherConnectedNodeIds(graph: GraphModel, selectedNodeId: string | null) {
+  if (!selectedNodeId) return new Set(graph.nodes.map((node) => node.id));
+  const connected = new Set<string>([selectedNodeId]);
+  graph.edges.forEach((edge) => {
+    if (edge.source === selectedNodeId || edge.target === selectedNodeId) {
+      connected.add(edge.source);
+      connected.add(edge.target);
+    }
+  });
+  return connected;
 }
 
 export function FlowChartPage({ tree, onBack }: Props) {
-  const [selectedParent, setSelectedParent] = useState<string | null>(null);
-  const [selectedGrade, setSelectedGrade] = useState<string | null>(null);
-  const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
-  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<FlowTab>("focus-gaps");
+  const [query, setQuery] = useState("");
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<FlowFilters>({
+    grade: "",
+    subject: "",
+    chapter: "",
+    parentConcept: "",
+  });
 
-  const activeParent = useMemo(
-    () => tree.find((p) => p.parentConcept === selectedParent) ?? null,
-    [tree, selectedParent],
+  const [viewportByTab, setViewportByTab] = useState<Record<FlowTab, Viewport>>({
+    "focus-gaps": DEFAULT_VIEWPORT,
+    library: DEFAULT_VIEWPORT,
+    curriculum: DEFAULT_VIEWPORT,
+    "concept-overview": DEFAULT_VIEWPORT,
+  });
+
+  const concepts = useMemo(() => normalizeConcepts(tree), [tree]);
+  const options = useMemo(() => getFilterOptions(concepts), [concepts]);
+
+  const graph = useMemo(() => {
+    switch (activeTab) {
+      case "focus-gaps":
+        return buildFocusGapsGraph(concepts, query, filters);
+      case "library":
+        return buildLibraryGraph(concepts, query, filters);
+      case "curriculum":
+        return buildCurriculumGraph(concepts, query, filters);
+      case "concept-overview":
+        return buildConceptOverviewGraph(concepts, query, filters, selectedNodeId ?? undefined);
+    }
+  }, [activeTab, concepts, query, filters, selectedNodeId]);
+
+  const selectedNode = graph.nodes.find((node) => node.id === selectedNodeId) ?? null;
+  const emphasizedNodeIds = useMemo(
+    () => gatherConnectedNodeIds(graph, selectedNodeId),
+    [graph, selectedNodeId],
   );
 
-  const grades = activeParent?.grades ?? [];
-  const activeGrade = grades.find((g) => g.grade === selectedGrade) ?? null;
-  const chapters = activeGrade?.chapters ?? [];
-  const activeChapter = chapters.find((ch) => ch.chapter === selectedChapter) ?? null;
-  const topics = activeChapter?.topics ?? [];
-  const activeTopic = topics.find((t) => t.topic === selectedTopic) ?? null;
-  const concepts: ConceptNode[] = activeTopic?.concepts ?? [];
+  const conceptIndex = useMemo(
+    () => new Map(concepts.map((concept) => [concept.id, concept])),
+    [concepts],
+  );
 
   return (
-    <div className="min-h-screen bg-slate-100 px-4 py-6 dark:bg-slate-950 sm:px-6 lg:px-8">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-slate-900 dark:text-white">
-            Curriculum Flow Chart
-          </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Select items column-by-column to expand the learning path.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedParent(null);
-              setSelectedGrade(null);
-              setSelectedChapter(null);
-              setSelectedTopic(null);
-            }}
-            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
-          >
-            Reset selection
-          </button>
-          <button
-            type="button"
-            onClick={onBack}
-            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
-          >
-            Back to hierarchy
-          </button>
-        </div>
-      </div>
-
-      <p className="mb-4 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs text-indigo-800 dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-200">
-        Path: {selectedParent ?? "—"} → {selectedGrade ? `Grade ${selectedGrade}` : "—"} → {selectedChapter ? `Chapter: ${selectedChapter}` : "—"} → {selectedTopic ?? "—"}
-      </p>
-
-      <div className="grid gap-4 lg:grid-cols-5">
-        <Column title="Parent Concept">
-          {tree.map((p) => (
-            <ColumnCard
-              key={p.parentConcept}
-              title={p.parentConcept}
-              selected={selectedParent === p.parentConcept}
-              onClick={() => {
-                setSelectedParent(p.parentConcept);
-                setSelectedGrade(null);
-                setSelectedChapter(null);
-                setSelectedTopic(null);
-              }}
-            />
-          ))}
-        </Column>
-
-        <Column title="Grade">
-          {grades.length === 0 && <p className="text-xs text-slate-500">Select parent concept first.</p>}
-          {grades.map((g) => (
-            <ColumnCard
-              key={g.grade}
-              title={`Grade ${g.grade}`}
-              selected={selectedGrade === g.grade}
-              onClick={() => {
-                setSelectedGrade(g.grade);
-                setSelectedChapter(null);
-                setSelectedTopic(null);
-              }}
-            />
-          ))}
-        </Column>
-
-        <Column title="Chapter">
-          {chapters.length === 0 && <p className="text-xs text-slate-500">Select grade first.</p>}
-          {chapters.map((ch) => (
-            <ColumnCard
-              key={ch.chapter}
-              title={`Chapter: ${ch.chapter}`}
-              selected={selectedChapter === ch.chapter}
-              onClick={() => {
-                setSelectedChapter(ch.chapter);
-                setSelectedTopic(null);
-              }}
-            />
-          ))}
-        </Column>
-
-        <Column title="Topic">
-          {topics.length === 0 && <p className="text-xs text-slate-500">Select chapter first.</p>}
-          {topics.map((t) => (
-            <ColumnCard
-              key={t.topic}
-              title={t.topic}
-              selected={selectedTopic === t.topic}
-              onClick={() => setSelectedTopic(t.topic)}
-            />
-          ))}
-        </Column>
-
-        <Column title="Concepts">
-          {concepts.length === 0 && <p className="text-xs text-slate-500">Select topic first.</p>}
-          {concepts.map((c, idx) => (
-            <div
-              key={`${c.name}:${idx}`}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
-            >
-              {c.name}
+    <div className="min-h-screen bg-slate-100 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1800px] space-y-4">
+        <header className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h1 className="text-2xl font-semibold text-slate-900">Flow Chart Workspace</h1>
+              <p className="text-sm text-slate-500">
+                Premium multi-view graph exploration for chapters, topics, parent concepts, and concepts.
+              </p>
             </div>
-          ))}
-        </Column>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedNodeId(null);
+                  setFilters({ grade: "", subject: "", chapter: "", parentConcept: "" });
+                  setQuery("");
+                }}
+                className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Reset selection
+              </button>
+              <button
+                type="button"
+                onClick={onBack}
+                className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Back to hierarchy
+              </button>
+            </div>
+          </div>
+
+          <FlowChartTabs
+            activeTab={activeTab}
+            onTabChange={(nextTab) => {
+              setActiveTab(nextTab);
+              setSelectedNodeId(null);
+            }}
+          />
+        </header>
+
+        <FlowChartToolbar
+          query={query}
+          onQueryChange={setQuery}
+          filters={filters}
+          onFiltersChange={setFilters}
+          options={options}
+        />
+
+        {graph.nodes.length === 0 ? (
+          <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+            No nodes match your current search/filter combination.
+          </section>
+        ) : (
+          <div className="flex flex-col gap-4 xl:flex-row">
+            <div className="min-w-0 flex-1">
+              <GraphCanvas
+                nodes={graph.nodes}
+                edges={graph.edges}
+                selectedNodeId={selectedNodeId}
+                emphasizedNodeIds={emphasizedNodeIds}
+                viewport={viewportByTab[activeTab]}
+                onViewportChange={(next) =>
+                  setViewportByTab((prev) => ({
+                    ...prev,
+                    [activeTab]: next,
+                  }))
+                }
+                onSelectNode={setSelectedNodeId}
+                onResetLayout={() =>
+                  setViewportByTab((prev) => ({
+                    ...prev,
+                    [activeTab]: DEFAULT_VIEWPORT,
+                  }))
+                }
+              />
+            </div>
+
+            <DetailsPanel
+              selectedNode={selectedNode}
+              conceptIndex={conceptIndex}
+              onJumpTab={(tab) => setActiveTab(tab)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
