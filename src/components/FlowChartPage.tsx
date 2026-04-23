@@ -19,41 +19,49 @@ type ParentAggregate = {
   concepts: ConceptNode[];
 };
 
-function ColumnCard({
+function Pill({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 dark:border-indigo-900/60 dark:bg-indigo-950/50 dark:text-indigo-200">
+      {children}
+    </span>
+  );
+}
+
+function SectionTitle({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <div className="mb-4 flex items-start justify-between gap-3">
+      <div>
+        <h2 className="text-base font-semibold text-slate-900 dark:text-white">{title}</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>
+      </div>
+    </div>
+  );
+}
+
+function SelectCard({
   title,
-  selected,
   subtitle,
+  selected,
   onClick,
 }: {
   title: string;
-  selected: boolean;
   subtitle?: string;
+  selected: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`w-full rounded-xl border px-3 py-2 text-left text-sm transition ${
+      className={`group w-full rounded-2xl border p-3 text-left transition duration-200 ${
         selected
-          ? "border-indigo-300 bg-indigo-50 text-indigo-900 dark:border-indigo-500 dark:bg-indigo-950/50 dark:text-indigo-200"
-          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
+          ? "border-indigo-300 bg-gradient-to-r from-indigo-50 to-violet-50 shadow-sm dark:border-indigo-500 dark:from-indigo-950/50 dark:to-violet-950/40"
+          : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600"
       }`}
     >
-      <p>{title}</p>
-      {subtitle && <p className="mt-1 text-xs opacity-70">{subtitle}</p>}
+      <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{title}</p>
+      {subtitle && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>}
     </button>
-  );
-}
-
-function Column({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="min-w-64 flex-1 rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-700 dark:bg-slate-900">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-        {title}
-      </h2>
-      <div className="space-y-2">{children}</div>
-    </section>
   );
 }
 
@@ -65,6 +73,10 @@ function dedupeConcepts(concepts: ConceptNode[]) {
     seen.add(key);
     return true;
   });
+}
+
+function conceptKey(concept: ConceptNode) {
+  return `${concept.name}|${concept.meta.parentConcept}|${concept.meta.chapter}|${concept.meta.topic}|${concept.meta.grade}`;
 }
 
 export function FlowChartPage({ tree, onBack }: Props) {
@@ -147,11 +159,7 @@ export function FlowChartPage({ tree, onBack }: Props) {
   const activeLibraryParent =
     parentAggregates.find((parent) => parent.parentConcept === selectedLibraryParent) ?? null;
   const activeOverviewConcept =
-    allConcepts.find(
-      (concept) =>
-        `${concept.name}|${concept.meta.parentConcept}|${concept.meta.chapter}|${concept.meta.topic}|${concept.meta.grade}` ===
-        selectedOverviewConceptKey,
-    ) ?? null;
+    allConcepts.find((concept) => conceptKey(concept) === selectedOverviewConceptKey) ?? null;
 
   const resetAllSelections = () => {
     setSelectedParent(null);
@@ -163,234 +171,335 @@ export function FlowChartPage({ tree, onBack }: Props) {
     setSelectedOverviewConceptKey(null);
   };
 
-  const tabs: Array<{ id: ViewTab; label: string }> = [
-    { id: "focus-gaps", label: "Focus Gaps Flow Chart" },
-    { id: "library", label: "Library Flow Chart" },
-    { id: "curriculum", label: "Curriculum Flow Chart" },
-    { id: "concept-overview", label: "Concepts Overview" },
+  const tabs: Array<{ id: ViewTab; label: string; description: string }> = [
+    {
+      id: "focus-gaps",
+      label: "Focus Gaps",
+      description: "Chapter → concept gap-scanning lens",
+    },
+    {
+      id: "library",
+      label: "Library",
+      description: "Parent concept → concept catalog",
+    },
+    {
+      id: "curriculum",
+      label: "Curriculum",
+      description: "Parent → grade → chapter → topic flow",
+    },
+    {
+      id: "concept-overview",
+      label: "Concepts Overview",
+      description: "Interactive concept bubble constellation",
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-100 px-4 py-6 dark:bg-slate-950 sm:px-6 lg:px-8">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-slate-900 dark:text-white">
-            Flow Chart Views
-          </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Switch tabs to explore chapter, topic, concept, and parent concept relationships.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={resetAllSelections}
-            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
-          >
-            Reset selection
-          </button>
-          <button
-            type="button"
-            onClick={onBack}
-            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
-          >
-            Back to hierarchy
-          </button>
-        </div>
-      </div>
-
-      <div className="mb-5 flex flex-wrap gap-2">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
-              activeTab === tab.id
-                ? "border-indigo-300 bg-indigo-50 text-indigo-800 dark:border-indigo-500 dark:bg-indigo-950/50 dark:text-indigo-200"
-                : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {activeTab === "focus-gaps" && (
-        <>
-          <p className="mb-4 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs text-indigo-800 dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-200">
-            Path: {selectedFocusChapter ? `Chapter: ${selectedFocusChapter}` : "—"} → Concepts
-          </p>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Column title="Chapter">
-              {chapterAggregates.map((entry) => (
-                <ColumnCard
-                  key={entry.chapter}
-                  title={`Chapter: ${entry.chapter}`}
-                  subtitle={`${entry.topics.length} topics · ${entry.concepts.length} concepts`}
-                  selected={selectedFocusChapter === entry.chapter}
-                  onClick={() => setSelectedFocusChapter(entry.chapter)}
-                />
-              ))}
-            </Column>
-            <Column title="Concepts">
-              {!activeFocusChapter && <p className="text-xs text-slate-500">Select chapter first.</p>}
-              {activeFocusChapter?.concepts.map((concept, idx) => (
-                <div
-                  key={`${concept.name}:${concept.meta.topic}:${idx}`}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
-                >
-                  <p>{concept.name}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{concept.meta.topic}</p>
-                </div>
-              ))}
-            </Column>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#e2e8f0_0%,_#f8fafc_45%,_#f8fafc_100%)] px-4 py-6 dark:bg-slate-950 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-6 rounded-3xl border border-slate-200/80 bg-white/90 p-5 shadow-soft backdrop-blur-md dark:border-slate-700 dark:bg-slate-900/80">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="font-display text-2xl font-semibold text-slate-900 dark:text-white">
+                Flow Chart Studio
+              </h1>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                A dynamic workspace to inspect curriculum relationships from multiple angles.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={resetAllSelections}
+                className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+              >
+                Reset selection
+              </button>
+              <button
+                type="button"
+                onClick={onBack}
+                className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+              >
+                Back to hierarchy
+              </button>
+            </div>
           </div>
-        </>
-      )}
 
-      {activeTab === "library" && (
-        <>
-          <p className="mb-4 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs text-indigo-800 dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-200">
-            Path: {selectedLibraryParent ?? "—"} → Concepts
-          </p>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Column title="Parent Concept">
-              {parentAggregates.map((entry) => (
-                <ColumnCard
-                  key={entry.parentConcept}
-                  title={entry.parentConcept}
-                  subtitle={`${entry.concepts.length} concepts`}
-                  selected={selectedLibraryParent === entry.parentConcept}
-                  onClick={() => setSelectedLibraryParent(entry.parentConcept)}
-                />
-              ))}
-            </Column>
-            <Column title="Concepts">
-              {!activeLibraryParent && (
-                <p className="text-xs text-slate-500">Select parent concept first.</p>
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`rounded-2xl border p-3 text-left transition ${
+                  activeTab === tab.id
+                    ? "border-indigo-300 bg-gradient-to-br from-indigo-50 via-violet-50 to-fuchsia-50 dark:border-indigo-500 dark:from-indigo-950/60 dark:via-violet-950/50 dark:to-fuchsia-950/40"
+                    : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900"
+                }`}
+              >
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{tab.label}</p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{tab.description}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {activeTab === "focus-gaps" && (
+          <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+            <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-700 dark:bg-slate-900">
+              <SectionTitle
+                title="Chapters"
+                subtitle="Pick a chapter to visualize concept spread and possible focus gaps"
+              />
+              <div className="space-y-2">
+                {chapterAggregates.map((entry) => (
+                  <SelectCard
+                    key={entry.chapter}
+                    title={`Chapter: ${entry.chapter}`}
+                    subtitle={`${entry.topics.length} topics · ${entry.concepts.length} concepts`}
+                    selected={selectedFocusChapter === entry.chapter}
+                    onClick={() => setSelectedFocusChapter(entry.chapter)}
+                  />
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-700 dark:bg-slate-900">
+              <SectionTitle
+                title="Focus Gaps Flow"
+                subtitle="Each bubble is a concept tied to the selected chapter"
+              />
+              {!activeFocusChapter && (
+                <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-300">
+                  Select a chapter to reveal an interactive concept cloud.
+                </p>
               )}
-              {activeLibraryParent?.concepts.map((concept, idx) => (
-                <div
-                  key={`${concept.name}:${concept.meta.chapter}:${idx}`}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
-                >
-                  <p>{concept.name}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Grade {concept.meta.grade} · Chapter: {concept.meta.chapter}
-                  </p>
-                </div>
-              ))}
-            </Column>
+
+              {activeFocusChapter && (
+                <>
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    <Pill>{`Chapter: ${activeFocusChapter.chapter}`}</Pill>
+                    <Pill>{`${activeFocusChapter.topics.length} Topics`}</Pill>
+                    <Pill>{`${activeFocusChapter.concepts.length} Concepts`}</Pill>
+                  </div>
+                  <div className="flex min-h-52 flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/40">
+                    {activeFocusChapter.concepts.map((concept, idx) => (
+                      <div
+                        key={`${conceptKey(concept)}:${idx}`}
+                        className="rounded-full border border-indigo-200 bg-white px-3 py-2 text-xs text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow dark:border-indigo-700 dark:bg-slate-900 dark:text-slate-200"
+                      >
+                        {concept.name}
+                        <span className="ml-2 text-[11px] text-slate-400">{concept.meta.topic}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </section>
           </div>
-        </>
-      )}
+        )}
 
-      {activeTab === "curriculum" && (
-        <>
-          <p className="mb-4 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs text-indigo-800 dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-200">
-            Path: {selectedParent ?? "—"} → {selectedGrade ? `Grade ${selectedGrade}` : "—"} → {selectedChapter ? `Chapter: ${selectedChapter}` : "—"} → {selectedTopic ?? "—"}
-          </p>
+        {activeTab === "library" && (
+          <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+            <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-700 dark:bg-slate-900">
+              <SectionTitle
+                title="Parent Concept Library"
+                subtitle="Browse parent buckets and inspect all linked concepts"
+              />
+              <div className="space-y-2">
+                {parentAggregates.map((entry) => (
+                  <SelectCard
+                    key={entry.parentConcept}
+                    title={entry.parentConcept}
+                    subtitle={`${entry.concepts.length} concepts`}
+                    selected={selectedLibraryParent === entry.parentConcept}
+                    onClick={() => setSelectedLibraryParent(entry.parentConcept)}
+                  />
+                ))}
+              </div>
+            </section>
 
-          <div className="grid gap-4 lg:grid-cols-5">
-            <Column title="Parent Concept">
-              {tree.map((p) => (
-                <ColumnCard
-                  key={p.parentConcept}
-                  title={p.parentConcept}
-                  selected={selectedParent === p.parentConcept}
-                  onClick={() => {
-                    setSelectedParent(p.parentConcept);
-                    setSelectedGrade(null);
-                    setSelectedChapter(null);
-                    setSelectedTopic(null);
-                  }}
-                />
-              ))}
-            </Column>
+            <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-700 dark:bg-slate-900">
+              <SectionTitle
+                title="Library Flow"
+                subtitle="Concept cards carry grade and chapter context for quick scanning"
+              />
+              {!activeLibraryParent && (
+                <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-300">
+                  Select a parent concept to load the concept library cards.
+                </p>
+              )}
 
-            <Column title="Grade">
-              {grades.length === 0 && <p className="text-xs text-slate-500">Select parent concept first.</p>}
-              {grades.map((g) => (
-                <ColumnCard
-                  key={g.grade}
-                  title={`Grade ${g.grade}`}
-                  selected={selectedGrade === g.grade}
-                  onClick={() => {
-                    setSelectedGrade(g.grade);
-                    setSelectedChapter(null);
-                    setSelectedTopic(null);
-                  }}
-                />
-              ))}
-            </Column>
-
-            <Column title="Chapter">
-              {chapters.length === 0 && <p className="text-xs text-slate-500">Select grade first.</p>}
-              {chapters.map((ch) => (
-                <ColumnCard
-                  key={ch.chapter}
-                  title={`Chapter: ${ch.chapter}`}
-                  selected={selectedChapter === ch.chapter}
-                  onClick={() => {
-                    setSelectedChapter(ch.chapter);
-                    setSelectedTopic(null);
-                  }}
-                />
-              ))}
-            </Column>
-
-            <Column title="Topic">
-              {topics.length === 0 && <p className="text-xs text-slate-500">Select chapter first.</p>}
-              {topics.map((t) => (
-                <ColumnCard
-                  key={t.topic}
-                  title={t.topic}
-                  selected={selectedTopic === t.topic}
-                  onClick={() => setSelectedTopic(t.topic)}
-                />
-              ))}
-            </Column>
-
-            <Column title="Concepts">
-              {curriculumConcepts.length === 0 && <p className="text-xs text-slate-500">Select topic first.</p>}
-              {curriculumConcepts.map((c, idx) => (
-                <div
-                  key={`${c.name}:${idx}`}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
-                >
-                  {c.name}
+              {activeLibraryParent && (
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {activeLibraryParent.concepts.map((concept, idx) => (
+                    <div
+                      key={`${conceptKey(concept)}:${idx}`}
+                      className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-3 shadow-sm dark:border-slate-700 dark:from-slate-900 dark:to-slate-800"
+                    >
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{concept.name}</p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <Pill>{`Grade ${concept.meta.grade}`}</Pill>
+                        <Pill>{`Chapter ${concept.meta.chapter}`}</Pill>
+                        <Pill>{concept.meta.topic}</Pill>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </Column>
+              )}
+            </section>
           </div>
-        </>
-      )}
+        )}
 
-      {activeTab === "concept-overview" && (
-        <>
-          <p className="mb-4 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs text-indigo-800 dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-200">
-            Bubble cluster of concepts. Select one concept to reveal its topic, chapter, and parent concept.
-          </p>
-          <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-700 dark:bg-slate-900">
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Concepts Cluster
-              </h2>
-              <div className="flex flex-wrap gap-2">
+        {activeTab === "curriculum" && (
+          <div className="space-y-4">
+            <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-700 dark:bg-slate-900">
+              <SectionTitle
+                title="Curriculum Flow Chart"
+                subtitle="Move left to right through the instructional hierarchy"
+              />
+              <div className="grid gap-3 lg:grid-cols-5">
+                <div className="rounded-2xl border border-slate-200 p-3 dark:border-slate-700">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Parent Concept</p>
+                  <div className="space-y-2">
+                    {tree.map((p) => (
+                      <SelectCard
+                        key={p.parentConcept}
+                        title={p.parentConcept}
+                        selected={selectedParent === p.parentConcept}
+                        onClick={() => {
+                          setSelectedParent(p.parentConcept);
+                          setSelectedGrade(null);
+                          setSelectedChapter(null);
+                          setSelectedTopic(null);
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 p-3 dark:border-slate-700">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Grade</p>
+                  <div className="space-y-2">
+                    {grades.length === 0 && <p className="text-xs text-slate-500">Select parent concept first.</p>}
+                    {grades.map((g) => (
+                      <SelectCard
+                        key={g.grade}
+                        title={`Grade ${g.grade}`}
+                        selected={selectedGrade === g.grade}
+                        onClick={() => {
+                          setSelectedGrade(g.grade);
+                          setSelectedChapter(null);
+                          setSelectedTopic(null);
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 p-3 dark:border-slate-700">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Chapter</p>
+                  <div className="space-y-2">
+                    {chapters.length === 0 && <p className="text-xs text-slate-500">Select grade first.</p>}
+                    {chapters.map((ch) => (
+                      <SelectCard
+                        key={ch.chapter}
+                        title={`Chapter ${ch.chapter}`}
+                        selected={selectedChapter === ch.chapter}
+                        onClick={() => {
+                          setSelectedChapter(ch.chapter);
+                          setSelectedTopic(null);
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 p-3 dark:border-slate-700">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Topic</p>
+                  <div className="space-y-2">
+                    {topics.length === 0 && <p className="text-xs text-slate-500">Select chapter first.</p>}
+                    {topics.map((t) => (
+                      <SelectCard
+                        key={t.topic}
+                        title={t.topic}
+                        selected={selectedTopic === t.topic}
+                        onClick={() => setSelectedTopic(t.topic)}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 p-3 dark:border-slate-700">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Concepts</p>
+                  <div className="space-y-2">
+                    {curriculumConcepts.length === 0 && <p className="text-xs text-slate-500">Select topic first.</p>}
+                    {curriculumConcepts.map((concept, idx) => (
+                      <div
+                        key={`${conceptKey(concept)}:${idx}`}
+                        className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
+                      >
+                        {concept.name}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-700 dark:bg-slate-900">
+              <SectionTitle
+                title="Current Path"
+                subtitle="Instant summary of your active curriculum trail"
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <Pill>{selectedParent ?? "Parent concept"}</Pill>
+                <span className="text-slate-400">→</span>
+                <Pill>{selectedGrade ? `Grade ${selectedGrade}` : "Grade"}</Pill>
+                <span className="text-slate-400">→</span>
+                <Pill>{selectedChapter ? `Chapter ${selectedChapter}` : "Chapter"}</Pill>
+                <span className="text-slate-400">→</span>
+                <Pill>{selectedTopic ?? "Topic"}</Pill>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {activeTab === "concept-overview" && (
+          <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+            <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-700 dark:bg-slate-900">
+              <SectionTitle
+                title="Concept Constellation"
+                subtitle="Click a bubble to follow concept → topic → chapter → parent concept"
+              />
+
+              <div className="relative mx-auto mt-2 h-[520px] w-full max-w-[760px] overflow-hidden rounded-3xl border border-slate-200 bg-[radial-gradient(circle_at_center,_#eef2ff_0%,_#f8fafc_55%,_#ffffff_100%)] dark:border-slate-700 dark:bg-[radial-gradient(circle_at_center,_#312e81_0%,_#111827_60%,_#0f172a_100%)]">
+                <div className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-indigo-300 bg-white px-4 py-2 text-xs font-semibold text-indigo-700 shadow dark:border-indigo-600 dark:bg-slate-900 dark:text-indigo-200">
+                  Concepts
+                </div>
                 {allConcepts.map((concept, idx) => {
-                  const key = `${concept.name}|${concept.meta.parentConcept}|${concept.meta.chapter}|${concept.meta.topic}|${concept.meta.grade}`;
+                  const key = conceptKey(concept);
                   const selected = key === selectedOverviewConceptKey;
-                  const bubbleSize = concept.name.length > 20 ? "px-3 py-2" : "px-4 py-3";
+                  const angle = (idx / Math.max(allConcepts.length, 1)) * Math.PI * 2;
+                  const ring = idx % 3;
+                  const radius = ring === 0 ? 140 : ring === 1 ? 190 : 230;
+                  const x = Math.cos(angle) * radius;
+                  const y = Math.sin(angle) * radius;
+
                   return (
                     <button
-                      key={`${key}:${idx}`}
+                      key={key}
                       type="button"
                       onClick={() => setSelectedOverviewConceptKey(key)}
-                      className={`rounded-full border text-sm transition ${bubbleSize} ${
+                      style={{
+                        left: `calc(50% + ${x}px)`,
+                        top: `calc(50% + ${y}px)`,
+                        transform: "translate(-50%, -50%)",
+                      }}
+                      className={`absolute rounded-full border px-3 py-1.5 text-xs shadow-sm transition hover:scale-105 ${
                         selected
-                          ? "border-indigo-300 bg-indigo-50 text-indigo-800 dark:border-indigo-500 dark:bg-indigo-950/50 dark:text-indigo-200"
-                          : "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
+                          ? "z-20 border-indigo-300 bg-indigo-100 text-indigo-800 dark:border-indigo-500 dark:bg-indigo-950/60 dark:text-indigo-200"
+                          : "border-slate-200 bg-white/95 text-slate-700 dark:border-slate-600 dark:bg-slate-900/85 dark:text-slate-200"
                       }`}
                     >
                       {concept.name}
@@ -400,36 +509,56 @@ export function FlowChartPage({ tree, onBack }: Props) {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-700 dark:bg-slate-900">
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Selected Concept Map
-              </h2>
+            <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-700 dark:bg-slate-900">
+              <SectionTitle
+                title="Lineage Inspector"
+                subtitle="Selected concept's curriculum mapping"
+              />
               {!activeOverviewConcept && (
-                <p className="text-sm text-slate-500 dark:text-slate-300">Select a concept bubble to inspect its full curriculum lineage.</p>
+                <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-300">
+                  Choose any concept bubble to inspect details.
+                </p>
               )}
+
               {activeOverviewConcept && (
-                <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200">
-                  <p>
-                    <span className="font-semibold">Concept:</span> {activeOverviewConcept.name}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Topic:</span> {activeOverviewConcept.meta.topic}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Chapter:</span> {activeOverviewConcept.meta.chapter}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Parent Concept:</span> {activeOverviewConcept.meta.parentConcept}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Grade:</span> {activeOverviewConcept.meta.grade}
-                  </p>
+                <div className="space-y-3">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+                    <p className="text-xs uppercase tracking-wide text-slate-500">Concept</p>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{activeOverviewConcept.name}</p>
+                  </div>
+
+                  <div className="space-y-2 rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+                    <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800/60">
+                      <span className="text-xs text-slate-500">Topic</span>
+                      <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                        {activeOverviewConcept.meta.topic}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800/60">
+                      <span className="text-xs text-slate-500">Chapter</span>
+                      <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                        {activeOverviewConcept.meta.chapter}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800/60">
+                      <span className="text-xs text-slate-500">Parent Concept</span>
+                      <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                        {activeOverviewConcept.meta.parentConcept}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800/60">
+                      <span className="text-xs text-slate-500">Grade</span>
+                      <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                        {activeOverviewConcept.meta.grade}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               )}
             </section>
           </div>
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 }
