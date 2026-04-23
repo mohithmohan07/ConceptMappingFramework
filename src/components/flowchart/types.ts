@@ -26,9 +26,18 @@ export type GraphEdge = {
   target: string;
 };
 
+export type GraphLane = {
+  id: string;
+  label: string;
+  x: number;
+  width: number;
+};
+
 export type GraphModel = {
   nodes: GraphNode[];
   edges: GraphEdge[];
+  lanes: GraphLane[];
+  emptyMessage?: string;
 };
 
 export type NormalizedConcept = {

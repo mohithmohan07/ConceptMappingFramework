@@ -1,4 +1,4 @@
-import type { FlowFilters, GraphModel, GraphNode, NormalizedConcept } from "./types";
+import type { FlowFilters, GraphLane, GraphModel, GraphNode, NormalizedConcept } from "./types";
 
 function byFilters(concept: NormalizedConcept, query: string, filters: FlowFilters) {
   const q = query.trim().toLowerCase();
@@ -18,7 +18,11 @@ function byFilters(concept: NormalizedConcept, query: string, filters: FlowFilte
   );
 }
 
-function node(
+function uniqueSorted(values: string[]) {
+  return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+}
+
+function makeNode(
   id: string,
   label: string,
   kind: GraphNode["kind"],
@@ -26,73 +30,89 @@ function node(
   y: number,
   meta?: GraphNode["meta"],
 ): GraphNode {
-  return { id, label, kind, x, y, meta, tooltip: label };
+  return {
+    id,
+    label,
+    kind,
+    x,
+    y,
+    width: kind === "chapter" ? 190 : kind === "concept" ? 180 : 170,
+    height: 44,
+    tooltip: label,
+    meta,
+  };
 }
 
-function uniqueSorted(values: string[]) {
-  return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
-}
-
-function buildCollector() {
-  const nodeMap = new Map<string, GraphNode>();
-  const edgeMap = new Map<string, { id: string; source: string; target: string }>();
+function makeCollector(lanes: GraphLane[]): {
+  addNode: (node: GraphNode) => void;
+  addEdge: (source: string, target: string) => void;
+  toGraph: (emptyMessage?: string) => GraphModel;
+} {
+  const nodes = new Map<string, GraphNode>();
+  const edges = new Map<string, { id: string; source: string; target: string }>();
 
   return {
-    addNode(next: GraphNode) {
-      if (!nodeMap.has(next.id)) nodeMap.set(next.id, next);
+    addNode(node) {
+      if (!nodes.has(node.id)) nodes.set(node.id, node);
     },
-    addEdge(source: string, target: string) {
+    addEdge(source, target) {
       const id = `${source}->${target}`;
-      if (!edgeMap.has(id)) edgeMap.set(id, { id, source, target });
+      if (!edges.has(id)) edges.set(id, { id, source, target });
     },
-    toGraph(): GraphModel {
-      return { nodes: Array.from(nodeMap.values()), edges: Array.from(edgeMap.values()) };
+    toGraph(emptyMessage) {
+      return {
+        nodes: Array.from(nodes.values()),
+        edges: Array.from(edges.values()),
+        lanes,
+        emptyMessage,
+      };
     },
   };
 }
 
 export function buildFocusGapsGraph(concepts: NormalizedConcept[], query: string, filters: FlowFilters): GraphModel {
+  const lanes = [
+    { id: "chapter", label: "Chapter", x: 60, width: 230 },
+    { id: "topic", label: "Topic", x: 350, width: 230 },
+    { id: "parent", label: "Parent Concept", x: 640, width: 230 },
+    { id: "concept", label: "Concept", x: 930, width: 230 },
+  ];
+  const collect = makeCollector(lanes);
   const filtered = concepts.filter((c) => byFilters(c, query, filters));
-  const collect = buildCollector();
-
-  const chapterGap = 280;
-  const laneX = { chapter: 80, topic: 380, parent: 680, concept: 980 };
 
   uniqueSorted(filtered.map((c) => c.chapter)).forEach((chapter, chapterIndex) => {
-    const chapterY = 90 + chapterIndex * chapterGap;
     const chapterId = `chapter:${chapter}`;
-    collect.addNode(node(chapterId, chapter, "chapter", laneX.chapter, chapterY));
+    const chapterY = 90 + chapterIndex * 290;
+    collect.addNode(makeNode(chapterId, chapter, "chapter", 80, chapterY));
 
     const chapterConcepts = filtered.filter((c) => c.chapter === chapter);
-    const topics = uniqueSorted(chapterConcepts.map((c) => c.topic));
-
-    topics.forEach((topic, topicIndex) => {
+    uniqueSorted(chapterConcepts.map((c) => c.topic)).forEach((topic, topicIndex) => {
       const topicId = `topic:${chapter}:${topic}`;
-      const topicY = chapterY - 20 + topicIndex * 74;
-      collect.addNode(node(topicId, topic, "topic", laneX.topic, topicY));
+      const topicY = chapterY - 10 + topicIndex * 76;
+      collect.addNode(makeNode(topicId, topic, "topic", 370, topicY));
       collect.addEdge(chapterId, topicId);
 
       const topicConcepts = chapterConcepts.filter((c) => c.topic === topic);
       uniqueSorted(topicConcepts.map((c) => c.parentConcept)).forEach((parent, parentIndex) => {
         const parentId = `parent:${chapter}:${topic}:${parent}`;
-        const parentY = topicY + parentIndex * 58;
-        collect.addNode(node(parentId, parent, "parent", laneX.parent, parentY));
+        const parentY = topicY + parentIndex * 62;
+        collect.addNode(makeNode(parentId, parent, "parent", 660, parentY));
         collect.addEdge(topicId, parentId);
 
         topicConcepts
           .filter((c) => c.parentConcept === parent)
           .forEach((concept, conceptIndex) => {
             const conceptId = `concept:${concept.id}`;
-            const conceptY = parentY + conceptIndex * 46;
+            const conceptY = parentY + conceptIndex * 52;
             collect.addNode(
-              node(conceptId, concept.name, "concept", laneX.concept, conceptY, {
-                gapScore: concept.gapScore,
-                coverage: concept.coverage,
-                priority: concept.priority,
+              makeNode(conceptId, concept.name, "concept", 950, conceptY, {
                 chapter: concept.chapter,
                 topic: concept.topic,
                 parentConcept: concept.parentConcept,
                 grade: concept.grade,
+                gapScore: concept.gapScore,
+                coverage: concept.coverage,
+                priority: concept.priority,
               }),
             );
             collect.addEdge(parentId, conceptId);
@@ -101,27 +121,30 @@ export function buildFocusGapsGraph(concepts: NormalizedConcept[], query: string
     });
   });
 
-  return collect.toGraph();
+  return collect.toGraph("No chapter-to-concept paths found for selected filters.");
 }
 
 export function buildLibraryGraph(concepts: NormalizedConcept[], query: string, filters: FlowFilters): GraphModel {
+  const lanes = [
+    { id: "parent", label: "Parent Concept", x: 80, width: 300 },
+    { id: "concept", label: "Concept Library", x: 430, width: 760 },
+  ];
+  const collect = makeCollector(lanes);
   const filtered = concepts.filter((c) => byFilters(c, query, filters));
-  const collect = buildCollector();
-  const laneX = { parent: 120, concept: 460 };
 
   uniqueSorted(filtered.map((c) => c.parentConcept)).forEach((parent, parentIndex) => {
     const parentId = `parent:${parent}`;
-    const parentY = 90 + parentIndex * 188;
-    collect.addNode(node(parentId, parent, "parent", laneX.parent, parentY));
+    const parentY = 90 + parentIndex * 200;
+    collect.addNode(makeNode(parentId, parent, "parent", 110, parentY));
 
     filtered
       .filter((c) => c.parentConcept === parent)
-      .forEach((concept, idx) => {
+      .forEach((concept, index) => {
         const conceptId = `concept:${concept.id}`;
-        const col = idx % 3;
-        const row = Math.floor(idx / 3);
+        const col = index % 4;
+        const row = Math.floor(index / 4);
         collect.addNode(
-          node(conceptId, concept.name, "concept", laneX.concept + col * 250, parentY - 20 + row * 60, {
+          makeNode(conceptId, concept.name, "concept", 470 + col * 190, parentY - 20 + row * 58, {
             chapter: concept.chapter,
             topic: concept.topic,
             grade: concept.grade,
@@ -132,28 +155,32 @@ export function buildLibraryGraph(concepts: NormalizedConcept[], query: string, 
       });
   });
 
-  return collect.toGraph();
+  return collect.toGraph("No parent concept relationships found for selected filters.");
 }
 
 export function buildCurriculumGraph(concepts: NormalizedConcept[], query: string, filters: FlowFilters): GraphModel {
+  const lanes = [
+    { id: "chapter", label: "Chapter", x: 80, width: 280 },
+    { id: "topic", label: "Topics", x: 400, width: 790 },
+  ];
+  const collect = makeCollector(lanes);
   const filtered = concepts.filter((c) => byFilters(c, query, filters));
-  const collect = buildCollector();
 
   uniqueSorted(filtered.map((c) => c.chapter)).forEach((chapter, chapterIndex) => {
     const chapterId = `chapter:${chapter}`;
-    const chapterY = 100 + chapterIndex * 160;
-    collect.addNode(node(chapterId, chapter, "chapter", 120, chapterY));
+    const chapterY = 100 + chapterIndex * 170;
+    collect.addNode(makeNode(chapterId, chapter, "chapter", 110, chapterY));
 
     uniqueSorted(filtered.filter((c) => c.chapter === chapter).map((c) => c.topic)).forEach((topic, topicIndex) => {
       const topicId = `topic:${chapter}:${topic}`;
       const col = topicIndex % 4;
       const row = Math.floor(topicIndex / 4);
-      collect.addNode(node(topicId, topic, "topic", 460 + col * 230, chapterY - 18 + row * 64));
+      collect.addNode(makeNode(topicId, topic, "topic", 430 + col * 190, chapterY - 18 + row * 62));
       collect.addEdge(chapterId, topicId);
     });
   });
 
-  return collect.toGraph();
+  return collect.toGraph("No chapter-to-topic curriculum map found for selected filters.");
 }
 
 export function buildConceptOverviewGraph(
@@ -162,18 +189,23 @@ export function buildConceptOverviewGraph(
   filters: FlowFilters,
   selectedNodeId?: string,
 ): GraphModel {
+  const lanes = [
+    { id: "cluster", label: "Concept Cluster", x: 80, width: 760 },
+    { id: "lineage", label: "Lineage Trace", x: 900, width: 300 },
+  ];
+  const collect = makeCollector(lanes);
   const filtered = concepts.filter((c) => byFilters(c, query, filters));
-  const collect = buildCollector();
-  const centerX = 650;
-  const centerY = 380;
 
-  filtered.forEach((concept, idx) => {
-    const angle = (idx / Math.max(filtered.length, 1)) * Math.PI * 2;
-    const ring = idx % 4;
-    const radius = 200 + ring * 56;
+  const centerX = 430;
+  const centerY = 430;
+
+  filtered.forEach((concept, index) => {
+    const angle = (index / Math.max(filtered.length, 1)) * Math.PI * 2;
+    const ring = index % 4;
+    const radius = 180 + ring * 52;
     const conceptId = `concept:${concept.id}`;
     collect.addNode(
-      node(conceptId, concept.name, "concept", centerX + Math.cos(angle) * radius, centerY + Math.sin(angle) * radius, {
+      makeNode(conceptId, concept.name, "concept", centerX + Math.cos(angle) * radius, centerY + Math.sin(angle) * radius, {
         chapter: concept.chapter,
         topic: concept.topic,
         parentConcept: concept.parentConcept,
@@ -190,9 +222,9 @@ export function buildConceptOverviewGraph(
       const chapterId = `lineage:chapter:${selected.chapter}`;
       const parentId = `lineage:parent:${selected.parentConcept}`;
 
-      collect.addNode(node(topicId, selected.topic, "topic", centerX + 430, centerY - 90));
-      collect.addNode(node(chapterId, selected.chapter, "chapter", centerX + 430, centerY));
-      collect.addNode(node(parentId, selected.parentConcept, "parent", centerX + 430, centerY + 90));
+      collect.addNode(makeNode(topicId, selected.topic, "topic", 940, 300));
+      collect.addNode(makeNode(chapterId, selected.chapter, "chapter", 940, 390));
+      collect.addNode(makeNode(parentId, selected.parentConcept, "parent", 940, 480));
 
       collect.addEdge(selectedNodeId, topicId);
       collect.addEdge(selectedNodeId, chapterId);
@@ -200,5 +232,5 @@ export function buildConceptOverviewGraph(
     }
   }
 
-  return collect.toGraph();
+  return collect.toGraph("No concepts found for selected filters.");
 }

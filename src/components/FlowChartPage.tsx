@@ -135,14 +135,13 @@ export function FlowChartPage({ tree, onBack }: Props) {
 
         {graph.nodes.length === 0 ? (
           <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
-            No nodes match your current search/filter combination.
+            {graph.emptyMessage ?? "No nodes match your current search/filter combination."}
           </section>
         ) : (
           <div className="flex flex-col gap-4 xl:flex-row">
             <div className="min-w-0 flex-1">
               <GraphCanvas
-                nodes={graph.nodes}
-                edges={graph.edges}
+                graph={graph}
                 selectedNodeId={selectedNodeId}
                 emphasizedNodeIds={emphasizedNodeIds}
                 viewport={viewportByTab[activeTab]}
